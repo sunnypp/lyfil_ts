@@ -1,0 +1,11 @@
+{
+  "name": "lyfil_ts",
+  "version": "1.0.0",
+  "main": "built/main.js",
+  "repository": "https://github.com/sunnypp/lyfil_ts.git",
+  "author": "Sunny Pun <sunnyppsp@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "tap": "^12.6.0"
+  }
+}
