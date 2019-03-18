@@ -6,12 +6,12 @@ var ConstraintTypes;
 })(ConstraintTypes || (ConstraintTypes = {}));
 // https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
 const idx = (p, o) => p.reduce((xs, x) => (xs && xs[x]) ? xs[x] : null, o);
-function foundInDictionary(source, constraint, environment) {
-    // conceptually environment.dictionary[constraint][source];
-    return idx(['dictionary', constraint, source], environment) ? true : false;
+function foundInResultCache(source, constraint, environment) {
+    // conceptually environment.resultCache[constraint][source];
+    return idx(['resultCache', constraint, source], environment) ? true : false;
 }
 function cached(source, constraint, environment) {
-    return environment.dictionary[constraint][source];
+    return environment.resultCache[constraint][source];
 }
 function evaluateWith(environment) {
     // will be evaluated according to current environment status in the future
@@ -21,7 +21,7 @@ function optimized(results) {
     return results.reduce((p, c) => (c.loss < p.loss ? c : p), results[0]);
 }
 function fill(source, constraint, environment) {
-    if (foundInDictionary(source, constraint, environment)) {
+    if (foundInResultCache(source, constraint, environment)) {
         let cachedResults = cached(source, constraint, environment);
         return (environment.pick || optimized)(cachedResults.map(evaluateWith(environment)));
     }

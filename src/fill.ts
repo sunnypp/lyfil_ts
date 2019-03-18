@@ -1,3 +1,4 @@
+type ResultCache = {};
 type Dictionary = {};
 type SourceString = string;
 type ConstraintString = string;
@@ -27,7 +28,9 @@ type Constraint = Simple | Or | And;
 /* dictionary: { [ConstraintString]: { [SourceString]: WeightedResult[] } } */
 interface Environment {
   dictionary: Dictionary;
+  resultCache: ResultCache;
   pick?( results: WeightedResult[] ): WeightedResult;
+  accumulate?( result1: WeightedResult, result2: WeightedResult ): WeightedResult;
 }
 
 type Result = string[];
@@ -40,13 +43,13 @@ interface WeightedResult {
 // https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
 const idx: ( successors: string[], object: {} ) => any = (p, o) => p.reduce((xs, x) => (xs && xs[x]) ? xs[x] : null, o);
 
-function foundInDictionary( source: string, constraint: string, environment: Environment ): Boolean {
-  // conceptually environment.dictionary[constraint][source];
-  return idx( [ 'dictionary', constraint, source ], environment ) ? true : false;
+function foundInResultCache( source: string, constraint: string, environment: Environment ): Boolean {
+  // conceptually environment.resultCache[constraint][source];
+  return idx( [ 'resultCache', constraint, source ], environment ) ? true : false;
 }
 
 function cached( source: SourceString, constraint: ConstraintString, environment: Environment ): WeightedResult[] {
-  return environment.dictionary[constraint][source];
+  return environment.resultCache[constraint][source];
 }
 
 function evaluateWith( environment: Environment ): ( result: WeightedResult ) => WeightedResult {
@@ -63,7 +66,7 @@ function fill(
   constraint: ConstraintString,
   environment: Environment
 ): WeightedResult {
-  if ( foundInDictionary( source, constraint, environment ) ) {
+  if ( foundInResultCache( source, constraint, environment ) ) {
     let cachedResults: WeightedResult[] =  cached( source, constraint, environment );
     return ( environment.pick || optimized )( cachedResults.map(evaluateWith(environment)) );
   }
