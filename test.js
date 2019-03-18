@@ -2,14 +2,14 @@ const t = require('tap');
 const fill = require('./built/fill.js');
 
 t.test( 'Basic settings', { autoend: true }, t => {
-  t.same( fill( 'xx', 'a', { resultCache: { a: {} } } ).loss, 2, 'Loss = length when failed (2 chars)' );
-  t.same( fill( 'xxx', 'a', { resultCache: { a: {} } } ).loss, 3, 'Loss = length when failed (3 chars)' );
-  t.same( fill( 'xx', 'a', { resultCache: { a: { xx: [ { loss: 0, result: ['1'] } ] } } } ).loss, 0, 'Make use of the resultCache' );
-  t.same( fill( 'xx', 'a', { resultCache: { a: { xx: [ { loss: 1, result: ['2'] }, { loss: 0, result: ['1'] } ] } } } ).loss, 0, 'Use the cached value with the least loss' );
+  t.same( fill( 'xx', 'a', { resultCache: { a: {} } } )[1].loss, 2, 'Loss = length when failed (2 chars)' );
+  t.same( fill( 'xxx', 'a', { resultCache: { a: {} } } )[1].loss, 3, 'Loss = length when failed (3 chars)' );
+  t.same( fill( 'xx', 'a', { resultCache: { a: { xx: [ { loss: 0, result: ['1'] } ] } } } )[1].loss, 0, 'Make use of the resultCache' );
+  t.same( fill( 'xx', 'a', { resultCache: { a: { xx: [ { loss: 1, result: ['2'] }, { loss: 0, result: ['1'] } ] } } } )[1].loss, 0, 'Use the cached value with the least loss' );
   t.same( fill( 'xx', 'a', {
     resultCache: { a: { xx: [ { loss: 1, result: ['2'] }, { loss: 0, result: ['1'] } ] } },
     pick: rs => rs[0],
-  } ), { loss: 1, result: [ '2' ] }, 'Use the pick() in environment' );
+  } )[1], { loss: 1, result: [ '2' ] }, 'Use the pick() in environment' );
 });
 
 // t.only( 'Dictionary with Simple Constraint', { autoend: true },
