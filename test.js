@@ -12,32 +12,32 @@ t.test( 'Basic settings', { autoend: true }, t => {
   } )[1], { loss: 1, result: [ '2' ] }, 'Use the pick() in environment' );
 });
 
-// t.only( 'Dictionary with Simple Constraint', { autoend: true },
-//   t => {
-//     // found directly
-//     t.same( fill( '1', 'a', { dictionary: { a: { '1': ['9'] } } } ), { loss: 0, result: [ '9' ] }, "Found directly char" );
-//     // t.same( fill( '12', [ [ { 12: 98 } ] ] ), { loss: 0, result: 98 }, "Found directly vocab" );
+t.only( 'Dictionary with Simple Constraint', { autoend: true },
+  t => {
+    // found directly
+    t.same( fill( '1', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9' ] }, "Found directly char" );
+    t.same( fill( '12', 'a', { dictionary: { a: { '12': [{ loss: 0, result: ['98'] }] } } } )[1], { loss: 0, result: ['98'] }, "Found directly vocab" );
 
-//     // // not found completely
-//     // t.same( fill( '2', [ [ { 1: 9 } ] ] ), { loss: 1, result: 0 }, "Not found char" );
-//     // t.same( fill( '23', [ [ { 1: 9 } ] ] ), { loss: 2, result: '00' }, "Not found vocab" );
+    // // not found completely
+    // t.same( fill( '2', [ [ { 1: 9 } ] ] ), { loss: 1, result: 0 }, "Not found char" );
+    // t.same( fill( '23', [ [ { 1: 9 } ] ] ), { loss: 2, result: '00' }, "Not found vocab" );
 
-//     // // found partially
-//     // t.same( fill( '11', [ [ { 1: 9 } ] ] ), { loss: 0, result: 99 }, "pattern: oo" );
-//     // t.same( fill( '21', [ [ { 1: 9 } ] ] ), { loss: 1, result: '09' }, "pattern: xo" );
-//     // t.same( fill( '121', [ [ { 1: 9 } ] ] ), { loss: 1, result: '909' }, "pattern: oxo" );
-//     // t.same( fill( '1213', [ [ { 1: 9 } ] ] ), { loss: 2, result: '9090' }, "pattern: oxox" );
-//     // t.same( fill( '1213', [ [ { 1: 9, 2: 8 } ] ] ), { loss: 1, result: '9890' }, "pattern: ooox" );
-//     // t.same( fill( '1213', [ [ { 1: 9, 21: 89 } ] ] ), { loss: 1, result: '9890' }, "pattern: o[oo]x" );
+    // // found partially
+    // t.same( fill( '11', [ [ { 1: 9 } ] ] ), { loss: 0, result: 99 }, "pattern: oo" );
+    // t.same( fill( '21', [ [ { 1: 9 } ] ] ), { loss: 1, result: '09' }, "pattern: xo" );
+    // t.same( fill( '121', [ [ { 1: 9 } ] ] ), { loss: 1, result: '909' }, "pattern: oxo" );
+    // t.same( fill( '1213', [ [ { 1: 9 } ] ] ), { loss: 2, result: '9090' }, "pattern: oxox" );
+    // t.same( fill( '1213', [ [ { 1: 9, 2: 8 } ] ] ), { loss: 1, result: '9890' }, "pattern: ooox" );
+    // t.same( fill( '1213', [ [ { 1: 9, 21: 89 } ] ] ), { loss: 1, result: '9890' }, "pattern: o[oo]x" );
 
-//     // // optimize
-//     // t.same( fill( '1213', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '9890' }, "pattern: [oo]ox" );
-//     // t.same( fill( '312', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '098' }, "pattern: x[oo]" );
-//     // t.same( fill( '123', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '980' }, "pattern: [oo]x" );
-//     // t.same( fill( '12321', [ [ { 1: 9, 12: 98, 23: 87, 321: 789 } ] ] ), { loss: 0, result: '98789' }, "pattern: [oo][ooo]" );
-//     // t.same( fill( '12321', [ [ { 1: 9, 12: 98, 23: 87, 21: 89 } ] ] ), { loss: 0, result: '98789' }, "pattern: o[oo][oo]" );
-//   }
-// );
+    // // optimize
+    // t.same( fill( '1213', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '9890' }, "pattern: [oo]ox" );
+    // t.same( fill( '312', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '098' }, "pattern: x[oo]" );
+    // t.same( fill( '123', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '980' }, "pattern: [oo]x" );
+    // t.same( fill( '12321', [ [ { 1: 9, 12: 98, 23: 87, 321: 789 } ] ] ), { loss: 0, result: '98789' }, "pattern: [oo][ooo]" );
+    // t.same( fill( '12321', [ [ { 1: 9, 12: 98, 23: 87, 21: 89 } ] ] ), { loss: 0, result: '98789' }, "pattern: o[oo][oo]" );
+  }
+);
 
 // t.test( '2 seq, 1 dict', { autoend: true },
 //   t => {

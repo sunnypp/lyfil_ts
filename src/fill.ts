@@ -47,6 +47,13 @@ interface WeightedResult {
 
 // https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
 const idx: ( successors: string[], object: {} ) => any = (p, o) => p.reduce((xs, x) => (xs && xs[x]) ? xs[x] : null, o);
+const deep_set: ( successors: string[], object: {}, value: any ) => void = (p, o, v) => {
+  for ( let i = 0; i < p.length - 1; i++ ) {
+    o[p[i]] = o[p[i]] ? o[p[i]] : {};
+    o = o[p[i]];
+  }
+  o[p[p.length - 1]] = v;
+};
 
 function isFoundInDictionary( source: string, constraint: string, environment: Environment ): Boolean {
   // conceptually environment.resultCache[constraint][source];
@@ -83,6 +90,7 @@ function fill(
 
   if ( isFoundInDictionary( source, constraint, environment ) ) {
     let weightedResults: WeightedResult[] = environment.dictionary[constraint][source];
+    deep_set( [ 'resultCache', constraint, source ], environment, weightedResults );
     return [ environment, ( environment.pick || optimized )( weightedResults ) ];
   }
 
