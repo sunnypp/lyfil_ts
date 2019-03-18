@@ -27,6 +27,7 @@ type Constraint = Simple | Or | And;
 /* dictionary: { [ConstraintString]: { [SourceString]: WeightedResult[] } } */
 interface Environment {
   dictionary: Dictionary;
+  pick?( results: WeightedResult[] ): WeightedResult;
 }
 
 type Result = string[];
@@ -54,13 +55,17 @@ function evaluateWith( environment: Environment ): ( result: WeightedResult ) =>
 }
 
 function optimized( results: WeightedResult[] ): WeightedResult {
-  return results[0];
+  return results.reduce( (p, c) => ( c.loss < p.loss ? c : p ), results[0] );
 }
 
-function fill( source: SourceString, constraint: ConstraintString, environment: Environment ): WeightedResult {
+function fill(
+  source: SourceString,
+  constraint: ConstraintString,
+  environment: Environment
+): WeightedResult {
   if ( foundInDictionary( source, constraint, environment ) ) {
     let cachedResults: WeightedResult[] =  cached( source, constraint, environment );
-    return optimized( cachedResults.map(evaluateWith(environment)) );
+    return ( environment.pick || optimized )( cachedResults.map(evaluateWith(environment)) );
   }
 
   return {

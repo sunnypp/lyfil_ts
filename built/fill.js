@@ -18,12 +18,12 @@ function evaluateWith(environment) {
     return result => result;
 }
 function optimized(results) {
-    return results[0];
+    return results.reduce((p, c) => (c.loss < p.loss ? c : p), results[0]);
 }
 function fill(source, constraint, environment) {
     if (foundInDictionary(source, constraint, environment)) {
         let cachedResults = cached(source, constraint, environment);
-        return optimized(cachedResults.map(evaluateWith(environment)));
+        return (environment.pick || optimized)(cachedResults.map(evaluateWith(environment)));
     }
     return {
         loss: source.length,
