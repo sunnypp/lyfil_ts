@@ -35,6 +35,11 @@ interface Environment {
 
 type Result = string[];
 
+interface CachedResult {
+  loss: number | ( (Environment) => number );
+  result: Result;
+}
+
 interface WeightedResult {
   loss: number;
   result: Result;
@@ -48,13 +53,16 @@ function foundInResultCache( source: string, constraint: string, environment: En
   return idx( [ 'resultCache', constraint, source ], environment ) ? true : false;
 }
 
-function cached( source: SourceString, constraint: ConstraintString, environment: Environment ): WeightedResult[] {
+function cached( source: SourceString, constraint: ConstraintString, environment: Environment ): CachedResult[] {
   return environment.resultCache[constraint][source];
 }
 
-function evaluateWith( environment: Environment ): ( result: WeightedResult ) => WeightedResult {
+function evaluateWith( environment: Environment ): ( CachedResult ) => WeightedResult {
   // will be evaluated according to current environment status in the future
-  return result => result;
+  return result => ( typeof result.loss === 'number' ? result : {
+    loss: result.loss(environment),
+    result: result.result
+  });
 }
 
 function optimized( results: WeightedResult[] ): WeightedResult {
@@ -67,7 +75,7 @@ function fill(
   environment: Environment
 ): WeightedResult {
   if ( foundInResultCache( source, constraint, environment ) ) {
-    let cachedResults: WeightedResult[] =  cached( source, constraint, environment );
+    let cachedResults: CachedResult[] =  cached( source, constraint, environment );
     return ( environment.pick || optimized )( cachedResults.map(evaluateWith(environment)) );
   }
 

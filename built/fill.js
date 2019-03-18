@@ -15,7 +15,10 @@ function cached(source, constraint, environment) {
 }
 function evaluateWith(environment) {
     // will be evaluated according to current environment status in the future
-    return result => result;
+    return result => (typeof result.loss === 'number' ? result : {
+        loss: result.loss(environment),
+        result: result.result
+    });
 }
 function optimized(results) {
     return results.reduce((p, c) => (c.loss < p.loss ? c : p), results[0]);
