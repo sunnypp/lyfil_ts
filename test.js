@@ -12,30 +12,60 @@ t.test( 'Basic settings', { autoend: true }, t => {
   } )[1], { loss: 1, result: [ '2' ] }, 'Use the pick() in environment' );
 });
 
-t.only( 'Dictionary with Simple Constraint', { autoend: true },
+t.test( 'Dictionary with Simple Constraint', { autoend: true },
   t => {
     // found directly
     t.same( fill( '1', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9' ] }, "Found directly char" );
     t.same( fill( '12', 'a', { dictionary: { a: { '12': [{ loss: 0, result: ['98'] }] } } } )[1], { loss: 0, result: ['98'] }, "Found directly vocab" );
 
-    // // not found completely
-    // t.same( fill( '2', [ [ { 1: 9 } ] ] ), { loss: 1, result: 0 }, "Not found char" );
-    // t.same( fill( '23', [ [ { 1: 9 } ] ] ), { loss: 2, result: '00' }, "Not found vocab" );
+    // not found completely
+    t.same( fill( '2', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1].loss, 1, "Not found char" );
+    t.same( fill( '23', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1].loss, 2, "Not found vocab" );
 
-    // // found partially
-    // t.same( fill( '11', [ [ { 1: 9 } ] ] ), { loss: 0, result: 99 }, "pattern: oo" );
-    // t.same( fill( '21', [ [ { 1: 9 } ] ] ), { loss: 1, result: '09' }, "pattern: xo" );
-    // t.same( fill( '121', [ [ { 1: 9 } ] ] ), { loss: 1, result: '909' }, "pattern: oxo" );
-    // t.same( fill( '1213', [ [ { 1: 9 } ] ] ), { loss: 2, result: '9090' }, "pattern: oxox" );
-    // t.same( fill( '1213', [ [ { 1: 9, 2: 8 } ] ] ), { loss: 1, result: '9890' }, "pattern: ooox" );
-    // t.same( fill( '1213', [ [ { 1: 9, 21: 89 } ] ] ), { loss: 1, result: '9890' }, "pattern: o[oo]x" );
+    // found partially loopable
+    t.same( fill( '11', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9', '9' ] }, "pattern: oo" );
+    t.same( fill( '21', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 1, result: [ '', '9' ] }, "pattern: xo" );
+    t.same( fill( '121', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 1, result: [ '9', '', '9' ] }, "pattern: oxo" );
+    t.same( fill( '1213', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 2, result: [ '9', '', '9', '' ] }, "pattern: oxox" );
+    t.same( fill( '1213', 'a', { dictionary: { a: {
+      '1': [{ loss: 0, result: [ '9' ] }],
+      '2': [{ loss: 0, result: [ '8' ] }]
+    } } } )[1], { loss: 1, result: [ '9', '8', '9', '' ] }, "pattern: ooox" );
+    t.same( fill( '1213', 'a', { dictionary: { a: {
+      '1': [{ loss: 0, result: [ '9' ] }],
+      '21': [{ loss: 0, result: [ '89' ] }]
+    } } } )[1], { loss: 1, result: [ '9', '89', '' ] }, "pattern: o[oo]x" );
 
-    // // optimize
-    // t.same( fill( '1213', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '9890' }, "pattern: [oo]ox" );
-    // t.same( fill( '312', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '098' }, "pattern: x[oo]" );
-    // t.same( fill( '123', [ [ { 1: 9, 12: 98 } ] ] ), { loss: 1, result: '980' }, "pattern: [oo]x" );
-    // t.same( fill( '12321', [ [ { 1: 9, 12: 98, 23: 87, 321: 789 } ] ] ), { loss: 0, result: '98789' }, "pattern: [oo][ooo]" );
-    // t.same( fill( '12321', [ [ { 1: 9, 12: 98, 23: 87, 21: 89 } ] ] ), { loss: 0, result: '98789' }, "pattern: o[oo][oo]" );
+    // optimize
+    t.same( fill( '1213', 'a', { dictionary: { a: {
+      '1': [{ loss: 0, result: [ '9' ] }],
+      '12': [{ loss: 0, result: [ '98' ] }]
+    } } } )[1], { loss: 1, result: [ '98', '9', '' ] }, "pattern: [oo]ox" );
+
+    t.same( fill( '312', 'a', { dictionary: { a: {
+      '1': [{ loss: 0, result: [ '9' ] }],
+      '12': [{ loss: 0, result: [ '98' ] }]
+    } } } )[1], { loss: 1, result: [ '', '98' ] }, "pattern: x[oo]" );
+
+    t.same( fill( '123', 'a', { dictionary: { a: {
+      '1': [{ loss: 0, result: [ '9' ] }],
+      '12': [{ loss: 0, result: [ '98' ] }]
+    } } } )[1], { loss: 1, result: [ '98', '' ] }, "pattern: [oo]x" );
+
+    t.same( fill( '12321', 'a', { dictionary: { a: {
+      '1': [{ loss: 0, result: [ '9' ] }],
+      '12': [{ loss: 0, result: [ '98' ] }],
+      '23': [{ loss: 0, result: [ '87' ] }],
+      '321': [{ loss: 0, result: [ '789' ] }],
+    } } } )[1], { loss: 0, result: [ '98', '789' ] }, "pattern: [oo][ooo]" );
+
+    t.same( fill( '12321', 'a', { dictionary: { a: {
+      '1': [{ loss: 0, result: [ '9' ] }],
+      '12': [{ loss: 0, result: [ '98' ] }],
+      '23': [{ loss: 0, result: [ '87' ] }],
+      '21': [{ loss: 0, result: [ '89' ] }],
+    } } } )[1], { loss: 0, result: [ '9', '87', '89' ] }, "pattern: o[oo][oo]" );
+
   }
 );
 

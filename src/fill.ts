@@ -94,10 +94,27 @@ function fill(
     return [ environment, ( environment.pick || optimized )( weightedResults ) ];
   }
 
-  return [ environment, {
-    loss: source.length,
-    result: []
-  } ]
+  let minimumLoss = source.length;
+  let result:Result = Array(source.length).fill('');
+
+  // Instead of skipping, save all results with loss upper bounded
+  for ( let i = 1; minimumLoss > 0 && i < source.length; i++ ) {
+    let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );
+    let [ _2, tail ] = fill( source.substr( i ), constraint, environment );
+    let loss = head.loss + tail.loss;
+    if ( minimumLoss > loss ) {
+      minimumLoss = loss;
+      result = head.result.concat(tail.result);
+    }
+  }
+
+  let returnedResult: WeightedResult = {
+    loss: minimumLoss,
+    result: result
+  };
+  deep_set( [ 'resultCache', constraint, source ], environment, [ returnedResult ] );
+
+  return [ environment, returnedResult ];
 }
 
 module.exports = fill;
