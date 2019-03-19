@@ -230,14 +230,5 @@ t.only( 'AND Constraint', { autoend: true },
       }, "1[11][22]" );
 
     });
-
-    // t.test( 'Complex cases', { autoend: true }, t => {
-    //   t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 3: 7 } ] ] ), { loss: 0, result: '9897' }, "pattern: 1112" );
-    //   t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 13: 97 } ] ] ), { loss: 0, result: '9897' }, "pattern: 1122" );
-    //   t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 213: 897 } ] ] ), { loss: 0, result: '9897' }, "pattern: [ooo]x" );
-    //   t.same( fill( [ '12321' ], [ [ { 1: 9, 12: 98, 23: 87, 321: 789 }, { 321: 'ggg' } ] ] ), { loss: 0, result: '98ggg' }, "pattern: [oo][ooo]" );
-    //   t.same( fill( [ '12321' ], [ [ { 1: 9, 12: 98, 23: 87, 21: 89 }, { 21: 'gg' } ] ] ), { loss: 0, result: '987gg' }, "pattern: o[oo][oo]" );
-    // });
-
   }
 );
