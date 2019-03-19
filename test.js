@@ -106,30 +106,138 @@ t.test( 'Dictionary with Simple Constraint', { autoend: true },
 //   }
 // );
 
-// t.test( '1 seq, 2 dict', { autoend: true },
-//   t => {
+t.only( 'AND Constraint', { autoend: true },
+  t => {
 
-//     t.test( 'Complete cases', { autoend: true }, t => {
-//       t.same( fill( ['1'], [ [ { 1: 9 }, { 2: 8 } ] ] ), { loss: 1, result: 0 }, "bail out if dict > src" );
-//       t.same( fill( ['12'], [ [ { 1: 9 }, { 2: 8 } ] ] ), { loss: 0, result: '98' }, "12" );
-//       t.same( fill( ['12'], [ [ { 3: 7 }, { 4: 6 } ] ] ), { loss: 2, result: '00' }, "no result" );
-//     });
+    t.test( 'Complete cases (match or fail all)', { autoend: true }, t => {
+      t.same( fill( '1', 'a,b', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1].loss, 1, "Return max loss if 1 char splits into 2" );
 
-//     t.test( 'Partial cases', { autoend: true }, t => {
-//       t.same( fill( ['12'], [ [ { 2: 9 }, { 2: 8 } ] ] ), { loss: 1, result: '08' }, "x2" );
-//       t.same( fill( ['12'], [ [ { 1: 9 }, { 4: 6 } ] ] ), { loss: 1, result: '90' }, "1x" );
-//       t.same( fill( ['123'], [ [ { 1: 9 }, { 4: 6 }, { 3: 7 } ] ] ), { loss: 1, result: '907' }, "1x3" );
-//       // missing a part of a complete sentence isn't good, so 900 instead of 987
-//       t.same( fill( ['123'], [ [ { 1: 9 }, { 4: 6 }, { 23: 87 } ] ] ), { loss: 2, result: '900' }, "1xx" );
-//     });
+      t.same( fill( '12', 'a,b', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1].result, [ '9', '8' ], "Successful And" );
 
-//     t.test( 'Complex cases', { autoend: true }, t => {
-//       t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 3: 7 } ] ] ), { loss: 0, result: '9897' }, "pattern: 1112" );
-//       t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 13: 97 } ] ] ), { loss: 0, result: '9897' }, "pattern: 1122" );
-//       t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 213: 897 } ] ] ), { loss: 0, result: '9897' }, "pattern: [ooo]x" );
-//       t.same( fill( [ '12321' ], [ [ { 1: 9, 12: 98, 23: 87, 321: 789 }, { 321: 'ggg' } ] ] ), { loss: 0, result: '98ggg' }, "pattern: [oo][ooo]" );
-//       t.same( fill( [ '12321' ], [ [ { 1: 9, 12: 98, 23: 87, 21: 89 }, { 21: 'gg' } ] ] ), { loss: 0, result: '987gg' }, "pattern: o[oo][oo]" );
-//     });
+      t.same( fill( '12', 'a,b', { dictionary: {
+        a: { '2': [{ loss: 0, result: [ '8' ] }] },
+        b: { '1': [{ loss: 0, result: [ '9' ] }] },
+      } } )[1].loss, 2, "Fail all due to forced missing a or b" );
 
-//   }
-// );
+    });
+
+    t.test( 'Partial cases', { autoend: true }, t => {
+      t.same( fill( '12', 'a,b', { dictionary: {
+        a: { '2': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1], {
+        loss: 1,
+        result: [ '', '8' ]
+      }, "x2" );
+
+      t.same( fill( '12', 'a,b', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '4': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1], {
+        loss: 1,
+        result: [ '9', '' ]
+      }, "1x" );
+
+      t.same( fill( '123', 'a,b,c', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '4': [{ loss: 0, result: [ '8' ] }] },
+        c: { '3': [{ loss: 0, result: [ '7' ] }] }
+      } } )[1], {
+        loss: 1,
+        result: [ '9', '', '7' ]
+      }, "1x3" );
+
+      t.same( fill( '123', 'a,b', { dictionary: {
+        a: { '2': [{ loss: 0, result: [ '8' ] }] },
+        b: { '1': [{ loss: 0, result: [ '9' ] }] },
+      } } )[1].loss, 2, "x1x" );
+
+      // missing a part of a complete sentence isn't good, so 900 instead of 987
+      t.same( fill( '123', 'a,b,c', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '4': [{ loss: 0, result: [ '8' ] }] },
+        c: { '23': [{ loss: 0, result: [ '87' ] }] }
+      } } )[1], {
+        loss: 2,
+        result: [ '9', '', '' ]
+      }, "1xx" );
+    });
+
+    t.test( 'Complex cases', { autoend: true }, t => {
+      t.same( fill( '1213', 'a,b', { dictionary: {
+        a: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '12': [{ loss: 0, result: [ '98' ] }]
+        },
+        b: { '3': [{ loss: 0, result: [ '7' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '98', '9', '7' ]
+      }, "1112" );
+
+      t.same( fill( '1213', 'a,b', { dictionary: {
+        a: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '12': [{ loss: 0, result: [ '98' ] }]
+        },
+        b: { '13': [{ loss: 0, result: [ '97' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '98', '97' ]
+      }, "1122" );
+
+      t.same( fill( '1213', 'a,b', { dictionary: {
+        a: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '12': [{ loss: 0, result: [ '98' ] }]
+        },
+        b: { '213': [{ loss: 0, result: [ '897' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '9', '897' ]
+      }, "1222" );
+
+      t.same( fill( '12321', 'a,b', { dictionary: {
+        a: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '12': [{ loss: 0, result: [ '98' ] }],
+          '23': [{ loss: 0, result: [ '87' ] }],
+          '321': [{ loss: 0, result: [ '789' ] }],
+        },
+        b: { '321': [{ loss: 0, result: [ 'ggg' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '98', 'ggg' ]
+      }, "11222, not skipping 2nd" );
+
+      t.same( fill( '12321', 'a,b', { dictionary: {
+        a: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '12': [{ loss: 0, result: [ '98' ] }],
+          '23': [{ loss: 0, result: [ '87' ] }],
+          '21': [{ loss: 0, result: [ '89' ] }],
+        },
+        b: { '21': [{ loss: 0, result: [ 'gg' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '9', '87', 'gg' ]
+      }, "1[11][22]" );
+
+    });
+
+    // t.test( 'Complex cases', { autoend: true }, t => {
+    //   t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 3: 7 } ] ] ), { loss: 0, result: '9897' }, "pattern: 1112" );
+    //   t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 13: 97 } ] ] ), { loss: 0, result: '9897' }, "pattern: 1122" );
+    //   t.same( fill( [ '1213' ], [ [ { 1: 9, 12: 98 }, { 213: 897 } ] ] ), { loss: 0, result: '9897' }, "pattern: [ooo]x" );
+    //   t.same( fill( [ '12321' ], [ [ { 1: 9, 12: 98, 23: 87, 321: 789 }, { 321: 'ggg' } ] ] ), { loss: 0, result: '98ggg' }, "pattern: [oo][ooo]" );
+    //   t.same( fill( [ '12321' ], [ [ { 1: 9, 12: 98, 23: 87, 21: 89 }, { 21: 'gg' } ] ] ), { loss: 0, result: '987gg' }, "pattern: o[oo][oo]" );
+    // });
+
+  }
+);

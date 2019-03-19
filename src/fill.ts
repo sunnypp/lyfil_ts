@@ -79,10 +79,18 @@ function optimized( results: WeightedResult[] ): WeightedResult {
 }
 
 function parse( constraint: ConstraintString, environment: Environment ): Constraint {
+  const andIndex = constraint.indexOf(',');
+  if ( andIndex === -1 ) {
+    return {
+      type: ConstraintTypes.Simple,
+      constraint: constraint
+    };
+  }
+
   return {
-    type: ConstraintTypes.Simple,
-    constraint: constraint
-  };
+    type: ConstraintTypes.And,
+    constraint: [ constraint.substr(0, andIndex), constraint.substr( andIndex+1 ) ]
+  }
 }
 
 function fill(
@@ -103,13 +111,39 @@ function fill(
 
   const parsedConstraint:Constraint = parse( constraint, environment );
 
-  switch( parsedConstraint.type ) {
-    case ConstraintTypes.Simple:
-      let currentResult: WeightedResult = {
-        loss: source.length,
-        result: Array(source.length).fill('')
-      };
+  let currentResult: WeightedResult = {
+    loss: source.length,
+    result: Array(source.length).fill('')
+  };
 
+  switch( parsedConstraint.type ) {
+    case ConstraintTypes.And:
+      let [ constraint1, constraint2 ] = parsedConstraint.constraint;
+      // intentionally copied as the environment in simple case should be interdependent...
+      // also due to extra length check for And cases
+      for ( let i = 1; source.length > 1 && currentResult.loss > 0 && i < source.length; i++ ) {
+        let [ _1, head ] = fill( source.substr( 0, i ), constraint1, environment );
+        // should use _1 instead of environment in case of non loopable?
+        let [ _2, tail ] = fill( source.substr( i ), constraint2, environment );
+
+        let tempResult: WeightedResult = (
+          environment.accumulate || ( ( h, t ) => ({
+            loss: h.loss + t.loss,
+            result: h.result.concat(t.result)
+          } ) )
+        )( head, tail );
+
+        if ( currentResult.loss > tempResult.loss ) {
+          currentResult = tempResult;
+        }
+      }
+
+      deep_set( [ 'resultCache', constraint, source ], environment, [ currentResult ] );
+
+      return [ environment, currentResult ];
+
+
+    case ConstraintTypes.Simple:
       // Instead of skipping, save all results with loss upper bounded
       for ( let i = 1; currentResult.loss > 0 && i < source.length; i++ ) {
         let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );
