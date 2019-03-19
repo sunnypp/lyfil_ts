@@ -28,7 +28,7 @@ type Constraint = Simple | Or | And;
 /* dictionary: { [ConstraintString]: { [SourceString]: WeightedResult[] } } */
 interface Environment {
   dictionary: Dictionary;
-  resultCache: ResultCache;
+  resultCache?: ResultCache;
   pick?( results: WeightedResult[] ): WeightedResult;
   accumulate?( result1: WeightedResult, result2: WeightedResult ): WeightedResult;
 }
