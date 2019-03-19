@@ -78,6 +78,13 @@ function optimized( results: WeightedResult[] ): WeightedResult {
   return results.reduce( (p, c) => ( c.loss < p.loss ? c : p ), results[0] );
 }
 
+function parse( constraint: ConstraintString, environment: Environment ): Constraint {
+  return {
+    type: ConstraintTypes.Simple,
+    constraint: constraint
+  };
+}
+
 function fill(
   source: SourceString,
   constraint: ConstraintString,
@@ -94,27 +101,33 @@ function fill(
     return [ environment, ( environment.pick || optimized )( weightedResults ) ];
   }
 
-  let minimumLoss = source.length;
-  let result:Result = Array(source.length).fill('');
+  const parsedConstraint:Constraint = parse( constraint, environment );
 
-  // Instead of skipping, save all results with loss upper bounded
-  for ( let i = 1; minimumLoss > 0 && i < source.length; i++ ) {
-    let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );
-    let [ _2, tail ] = fill( source.substr( i ), constraint, environment );
-    let loss = head.loss + tail.loss;
-    if ( minimumLoss > loss ) {
-      minimumLoss = loss;
-      result = head.result.concat(tail.result);
-    }
+  switch( parsedConstraint.type ) {
+    case ConstraintTypes.Simple:
+      let minimumLoss = source.length;
+      let result:Result = Array(source.length).fill('');
+
+      // Instead of skipping, save all results with loss upper bounded
+      for ( let i = 1; minimumLoss > 0 && i < source.length; i++ ) {
+        let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );
+        // should use _1 instead of environment in case of non loopable?
+        let [ _2, tail ] = fill( source.substr( i ), constraint, environment );
+        let loss = head.loss + tail.loss;
+        if ( minimumLoss > loss ) {
+          minimumLoss = loss;
+          result = head.result.concat(tail.result);
+        }
+      }
+
+      let returnedResult: WeightedResult = {
+        loss: minimumLoss,
+        result: result
+      };
+      deep_set( [ 'resultCache', constraint, source ], environment, [ returnedResult ] );
+
+      return [ environment, returnedResult ];
   }
-
-  let returnedResult: WeightedResult = {
-    loss: minimumLoss,
-    result: result
-  };
-  deep_set( [ 'resultCache', constraint, source ], environment, [ returnedResult ] );
-
-  return [ environment, returnedResult ];
 }
 
 module.exports = fill;

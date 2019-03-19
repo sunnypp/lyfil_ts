@@ -32,6 +32,12 @@ function evaluateWith(environment) {
 function optimized(results) {
     return results.reduce((p, c) => (c.loss < p.loss ? c : p), results[0]);
 }
+function parse(constraint, environment) {
+    return {
+        type: ConstraintTypes.Simple,
+        constraint: constraint
+    };
+}
 function fill(source, constraint, environment) {
     if (isFoundInResultCache(source, constraint, environment)) {
         let cachedResults = environment.resultCache[constraint][source];
@@ -42,23 +48,28 @@ function fill(source, constraint, environment) {
         deep_set(['resultCache', constraint, source], environment, weightedResults);
         return [environment, (environment.pick || optimized)(weightedResults)];
     }
-    let minimumLoss = source.length;
-    let result = Array(source.length).fill('');
-    // Instead of skipping, save all results with loss upper bounded
-    for (let i = 1; minimumLoss > 0 && i < source.length; i++) {
-        let [_1, head] = fill(source.substr(0, i), constraint, environment);
-        let [_2, tail] = fill(source.substr(i), constraint, environment);
-        let loss = head.loss + tail.loss;
-        if (minimumLoss > loss) {
-            minimumLoss = loss;
-            result = head.result.concat(tail.result);
-        }
+    const parsedConstraint = parse(constraint, environment);
+    switch (parsedConstraint.type) {
+        case ConstraintTypes.Simple:
+            let minimumLoss = source.length;
+            let result = Array(source.length).fill('');
+            // Instead of skipping, save all results with loss upper bounded
+            for (let i = 1; minimumLoss > 0 && i < source.length; i++) {
+                let [_1, head] = fill(source.substr(0, i), constraint, environment);
+                // should use _1 instead of environment in case of non loopable?
+                let [_2, tail] = fill(source.substr(i), constraint, environment);
+                let loss = head.loss + tail.loss;
+                if (minimumLoss > loss) {
+                    minimumLoss = loss;
+                    result = head.result.concat(tail.result);
+                }
+            }
+            let returnedResult = {
+                loss: minimumLoss,
+                result: result
+            };
+            deep_set(['resultCache', constraint, source], environment, [returnedResult]);
+            return [environment, returnedResult];
     }
-    let returnedResult = {
-        loss: minimumLoss,
-        result: result
-    };
-    deep_set(['resultCache', constraint, source], environment, [returnedResult]);
-    return [environment, returnedResult];
 }
 module.exports = fill;
