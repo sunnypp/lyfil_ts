@@ -51,7 +51,7 @@ let dictionaryFactory = words => words.reduce((p, word) => {
 //     ).join(',')
 //   ).join("\n")
 // );
-let god = ['God', 'The Lord', 'The Father', 'My Shephard'];
+let god = ['God', 'The Lord', 'The Father', 'My Shephard', 'Almighty God'];
 let is = ['is', 'truly is', 'is always'];
 let adj = ['good', 'faithful', 'patient', 'kind', 'loving', 'forgiving'];
 let more = ['very', 'really', 'always', 'truly'];
@@ -64,6 +64,10 @@ let environment = {
         more: dictionaryFactory(more),
         add: dictionaryFactory(add),
     },
+    alias: {
+        clause: 'god,is,:adjc|:adjc,god|god',
+        adjc: 'adj|more,adj'
+    },
     pick: rs => rs[Math.floor(Math.random() * rs.length)]
 };
-console.log(input.split("\n").map(sentence => sentence.split(',').map(clause => fulfill(clause.split(' ').map(word => toneOf(word)).join(''), 'god,is,more,adj|god,is,adj|add,god,is,more,adj|add,god,is,adj|adj,god|add,adj,god|more,adj,god|god', environment)[1].result.join(' ')).join(',')).join("\n"));
+console.log(input.split("\n").map(sentence => sentence.split(',').map(clause => fulfill(clause.split(' ').map(word => toneOf(word)).join(''), 'add,:clause|:clause', environment)[1].result.join(' ')).join(',')).join("\n"));
