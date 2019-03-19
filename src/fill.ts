@@ -105,28 +105,32 @@ function fill(
 
   switch( parsedConstraint.type ) {
     case ConstraintTypes.Simple:
-      let minimumLoss = source.length;
-      let result:Result = Array(source.length).fill('');
+      let currentResult: WeightedResult = {
+        loss: source.length,
+        result: Array(source.length).fill('')
+      };
 
       // Instead of skipping, save all results with loss upper bounded
-      for ( let i = 1; minimumLoss > 0 && i < source.length; i++ ) {
+      for ( let i = 1; currentResult.loss > 0 && i < source.length; i++ ) {
         let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );
         // should use _1 instead of environment in case of non loopable?
         let [ _2, tail ] = fill( source.substr( i ), constraint, environment );
-        let loss = head.loss + tail.loss;
-        if ( minimumLoss > loss ) {
-          minimumLoss = loss;
-          result = head.result.concat(tail.result);
+
+        let tempResult: WeightedResult = (
+          environment.accumulate || ( ( h, t ) => ({
+            loss: h.loss + t.loss,
+            result: h.result.concat(t.result)
+          } ) )
+        )( head, tail );
+
+        if ( currentResult.loss > tempResult.loss ) {
+          currentResult = tempResult;
         }
       }
 
-      let returnedResult: WeightedResult = {
-        loss: minimumLoss,
-        result: result
-      };
-      deep_set( [ 'resultCache', constraint, source ], environment, [ returnedResult ] );
+      deep_set( [ 'resultCache', constraint, source ], environment, [ currentResult ] );
 
-      return [ environment, returnedResult ];
+      return [ environment, currentResult ];
   }
 }
 
