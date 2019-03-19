@@ -82,31 +82,142 @@ t.test( 'Dictionary with Simple Constraint', { autoend: true },
   }
 );
 
-// t.test( '2 seq, 1 dict', { autoend: true },
-//   t => {
-//     // found directly
-//     t.same( fill( [ '1' ], [ [ { 1: 9 } ], [ { 2: 8 } ] ] ), { loss: 0, result: 9 }, "Found directly char" );
-//     t.same( fill( [ '1' ], [ [ { 2: 8 } ], [ { 1: 9 } ] ] ), { loss: 0, result: 9 }, "Found directly char" );
-//     t.same( fill( [ '12' ], [ [ { 12: 98 } ], [ { 21: 89 } ] ] ), { loss: 0, result: 98 }, "Found directly vocab" );
-//     t.same( fill( [ '12' ], [ [ { 21: 89 } ], [ { 12: 98 } ] ] ), { loss: 0, result: 98 }, "Found directly vocab" );
+t.test( 'OR Constraint', { autoend: true },
+  t => {
 
-//     // not found completely
-//     t.same( fill( [ '2' ], [ [ { 1: 9 } ], [ { 3: 7 } ] ] ), { loss: 1, result: 0 }, "Not found char" );
-//     t.same( fill( [ '23' ], [ [ { 4: 6 } ], [ { 1: 9 } ] ] ), { loss: 2, result: '00' }, "Not found vocab" );
+    t.test( 'Complete cases (match or fail all)', { autoend: true }, t => {
+      t.same( fill( '1', 'a|b', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '9' ]
+      }, "Found char directly in first case" );
 
-//     t.test( 'found partially, prioritize 1st', { autoend: true }, t => {
-//       t.same( fill( [ '11' ], [ [ { 1: 9 } ], [ { 1: 7 } ] ] ), { loss: 0, result: 99 }, "pattern: 11" );
-//       t.same( fill( [ '21' ], [ [ { 1: 9 } ], [ { 2: 8 } ] ] ), { loss: 1, result: '09' }, "pattern: x1" );
-//       t.same( fill( [ '121' ], [ [ { 21: 98 } ], [ { 1: 9 } ] ] ), { loss: 1, result: '098' }, "pattern: 0[11]" );
-//       t.same( fill( [ '1213' ], [ [ { 23: 87 } ], [ { 1: 9 } ] ] ), { loss: 2, result: '9090' }, "pattern: 2x2x" );
-//       t.same( fill( [ '1213' ], [ [ { 21: 89, 3: 7 } ], [ { 1: 9, 2: 8 } ] ] ), { loss: 1, result: '0897' }, "pattern: x[22]2" );
-//       t.same( fill( [ '1213' ], [ [ { 1: 9, 21: 89 } ], [ { 213: 897 } ] ] ), { loss: 1, result: '9890' }, "pattern: 1[11]x" );
-//     });
+      t.same( fill( '1', 'b|a', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '9' ]
+      }, "Found char directly in second case" );
 
-//   }
-// );
+      t.same( fill( '12', 'a|b', { dictionary: {
+        a: { '12': [{ loss: 0, result: [ '98' ] }] },
+        b: { '21': [{ loss: 0, result: [ '89' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '98' ]
+      }, "Found vocab in first case" );
 
-t.only( 'AND Constraint', { autoend: true },
+      t.same( fill( '12', 'b|a', { dictionary: {
+        a: { '12': [{ loss: 0, result: [ '98' ] }] },
+        b: { '21': [{ loss: 0, result: [ '89' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '98' ]
+      }, "Found vocab in second case" );
+
+      t.same( fill( '1', 'b|a', { dictionary: {
+        a: { '3': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1].loss, 1, "Not found char" );
+
+      t.same( fill( '12', 'a|b', { dictionary: {
+        a: { '23': [{ loss: 0, result: [ '98' ] }] },
+        b: { '21': [{ loss: 0, result: [ '89' ] }] }
+      } } )[1].loss, 2, "Not found vocab" );
+
+      t.same( fill( '11', 'a|b', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '1': [{ loss: 0, result: [ '7' ] }] }
+      } } )[1], {
+        loss: 0,
+        result: [ '9', '9' ]
+      }, "11 prioritizing 1st case" );
+
+    });
+
+    t.test( 'Partial cases prioritizing 1st case', { autoend: true }, t => {
+
+      t.same( fill( '21', 'a|b', { dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] }
+      } } )[1], {
+        loss: 1,
+        result: [ '', '9' ]
+      }, "x1" );
+
+      t.same( fill( '121', 'a|b', { dictionary: {
+        a: { '21': [{ loss: 0, result: [ '89' ] }] },
+        b: { '1': [{ loss: 0, result: [ '9' ] }] }
+      } } )[1], {
+        loss: 1,
+        result: [ '', '89' ]
+      }, "011 by 1st case" );
+
+      t.same( fill( '121', 'b|a', { dictionary: {
+        a: { '21': [{ loss: 0, result: [ '89' ] }] },
+        b: { '1': [{ loss: 0, result: [ '9' ] }] }
+      } } )[1], {
+        loss: 1,
+        result: [ '9', '', '9' ]
+      }, "202 by 1st case" );
+
+      t.same( fill( '1213', 'a|b', { dictionary: {
+        a: { '23': [{ loss: 0, result: [ '87' ] }] },
+        b: { '1': [{ loss: 0, result: [ '9' ] }] }
+      } } )[1], {
+        loss: 2,
+        result: [ '9', '', '9', '' ]
+      }, "First case no use, partial apply 2nd" );
+
+      t.same( fill( '1213', 'a|b', { dictionary: {
+        a: {
+          '3': [{ loss: 0, result: [ '7' ] }],
+          '21': [{ loss: 0, result: [ '89' ] }]
+        },
+        b: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '2': [{ loss: 0, result: [ '8' ] }]
+        }
+      } } )[1], {
+        loss: 1,
+        result: [ '', '89', '7' ]
+      }, "Compare loss of 2 repeatedly applied cases" );
+
+      t.same( fill( '1213', 'b|a', { dictionary: {
+        a: {
+          '3': [{ loss: 0, result: [ '7' ] }],
+          '21': [{ loss: 0, result: [ '89' ] }]
+        },
+        b: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '2': [{ loss: 0, result: [ '8' ] }]
+        }
+      } } )[1], {
+        loss: 1,
+        result: [ '9', '8', '9', '' ]
+      }, "Compare loss of 2 repeatedly applied cases with ordering" );
+
+      t.same( fill( '1213', 'a|b', { dictionary: {
+        a: {
+          '1': [{ loss: 0, result: [ '9' ] }],
+          '21': [{ loss: 0, result: [ '89' ] }]
+        },
+        b: {
+          '213': [{ loss: 0, result: [ '897' ] }],
+        }
+      } } )[1], {
+        loss: 1,
+        result: [ '9', '89', '' ]
+      }, "Pattern: 1[11]x" );
+
+    });
+
+  }
+);
+t.test( 'AND Constraint', { autoend: true },
   t => {
 
     t.test( 'Complete cases (match or fail all)', { autoend: true }, t => {
@@ -230,5 +341,38 @@ t.only( 'AND Constraint', { autoend: true },
       }, "1[11][22]" );
 
     });
+  }
+);
+
+t.test( 'OR taken before AND', { autoend: true },
+  t => {
+
+    t.same( fill( '123', 'a,b|c', { dictionary: {
+      a: { '1': [{ loss: 0, result: [ '9' ] }] },
+      b: { '2': [{ loss: 0, result: [ '8' ] }] },
+      c: { '3': [{ loss: 0, result: [ '7' ] }] }
+    } } )[1], {
+      loss: 1,
+      result: [ '9', '8', '' ]
+    }, "(a,b) | c, returning a+b due to less loss" );
+
+    t.same( fill( '123', 'a|b,c', { dictionary: {
+      a: { '1': [{ loss: 0, result: [ '9' ] }] },
+      b: { '2': [{ loss: 0, result: [ '8' ] }] },
+      c: { '3': [{ loss: 0, result: [ '7' ] }] }
+    } } )[1], {
+      loss: 1,
+      result: [ '', '8', '7' ]
+    }, "a | ( b,c ), returning b+c due to less loss" );
+
+    t.same( fill( '123', 'b,c|a,b,c', { dictionary: {
+      a: { '1': [{ loss: 0, result: [ '9' ] }] },
+      b: { '2': [{ loss: 0, result: [ '8' ] }] },
+      c: { '3': [{ loss: 0, result: [ '7' ] }] }
+    } } )[1], {
+      loss: 0,
+      result: [ '9', '8', '7' ]
+    }, "( b,c ) | ( a,b,c ), returning a+b+c due to less loss" );
+
   }
 );

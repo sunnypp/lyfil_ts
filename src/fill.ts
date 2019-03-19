@@ -14,7 +14,7 @@ interface Simple {
 }
 
 interface Or {
-  type: ConstraintTypes.And;
+  type: ConstraintTypes.Or;
   constraint: ConstraintString[];
 }
 
@@ -79,18 +79,26 @@ function optimized( results: WeightedResult[] ): WeightedResult {
 }
 
 function parse( constraint: ConstraintString, environment: Environment ): Constraint {
-  const andIndex = constraint.indexOf(',');
-  if ( andIndex === -1 ) {
+  const orIndex = constraint.indexOf('|');
+  if ( orIndex !== -1 ) {
     return {
-      type: ConstraintTypes.Simple,
-      constraint: constraint
+      type: ConstraintTypes.Or,
+      constraint: [ constraint.substr(0, orIndex), constraint.substr( orIndex+1 ) ]
     };
   }
 
-  return {
-    type: ConstraintTypes.And,
-    constraint: [ constraint.substr(0, andIndex), constraint.substr( andIndex+1 ) ]
+  const andIndex = constraint.indexOf(',');
+  if ( andIndex !== -1 ) {
+    return {
+      type: ConstraintTypes.And,
+      constraint: [ constraint.substr(0, andIndex), constraint.substr( andIndex+1 ) ]
+    }
   }
+
+  return {
+    type: ConstraintTypes.Simple,
+    constraint: constraint
+  };
 }
 
 function fill(
@@ -117,6 +125,18 @@ function fill(
   };
 
   switch( parsedConstraint.type ) {
+    case ConstraintTypes.Or:
+      let [ case1, case2 ] = parsedConstraint.constraint;
+
+      currentResult = optimized([
+        fill( source, case1, environment )[1],
+        fill( source, case2, environment )[1],
+      ]);
+
+      deep_set( [ 'resultCache', constraint, source ], environment, [ currentResult ] );
+
+      return [ environment, currentResult ];
+
     case ConstraintTypes.And:
       let [ constraint1, constraint2 ] = parsedConstraint.constraint;
       // intentionally copied as the environment in simple case should be interdependent...

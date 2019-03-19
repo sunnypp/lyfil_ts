@@ -33,16 +33,23 @@ function optimized(results) {
     return results.reduce((p, c) => (c.loss < p.loss ? c : p), results[0]);
 }
 function parse(constraint, environment) {
-    const andIndex = constraint.indexOf(',');
-    if (andIndex === -1) {
+    const orIndex = constraint.indexOf('|');
+    if (orIndex !== -1) {
         return {
-            type: ConstraintTypes.Simple,
-            constraint: constraint
+            type: ConstraintTypes.Or,
+            constraint: [constraint.substr(0, orIndex), constraint.substr(orIndex + 1)]
+        };
+    }
+    const andIndex = constraint.indexOf(',');
+    if (andIndex !== -1) {
+        return {
+            type: ConstraintTypes.And,
+            constraint: [constraint.substr(0, andIndex), constraint.substr(andIndex + 1)]
         };
     }
     return {
-        type: ConstraintTypes.And,
-        constraint: [constraint.substr(0, andIndex), constraint.substr(andIndex + 1)]
+        type: ConstraintTypes.Simple,
+        constraint: constraint
     };
 }
 function fill(source, constraint, environment) {
@@ -61,6 +68,14 @@ function fill(source, constraint, environment) {
         result: Array(source.length).fill('')
     };
     switch (parsedConstraint.type) {
+        case ConstraintTypes.Or:
+            let [case1, case2] = parsedConstraint.constraint;
+            currentResult = optimized([
+                fill(source, case1, environment)[1],
+                fill(source, case2, environment)[1],
+            ]);
+            deep_set(['resultCache', constraint, source], environment, [currentResult]);
+            return [environment, currentResult];
         case ConstraintTypes.And:
             let [constraint1, constraint2] = parsedConstraint.constraint;
             // intentionally copied as the environment in simple case should be interdependent...
