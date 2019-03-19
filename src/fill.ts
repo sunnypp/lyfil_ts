@@ -31,6 +31,7 @@ interface Environment {
   resultCache?: ResultCache;
   pick?( results: WeightedResult[] ): WeightedResult;
   accumulate?( result1: WeightedResult, result2: WeightedResult ): WeightedResult;
+  alias?: {};
 }
 
 type Result = string[];
@@ -101,6 +102,10 @@ function parse( constraint: ConstraintString, environment: Environment ): Constr
   };
 }
 
+function isAlias( constraint: ConstraintString, environment: Environment ): Boolean {
+  return constraint[0] === ":" && idx( ['alias', constraint.substr(1)], environment );
+}
+
 function fill(
   source: SourceString,
   constraint: ConstraintString,
@@ -137,6 +142,7 @@ function fill(
 
       return [ environment, currentResult ];
 
+
     case ConstraintTypes.And:
       let [ constraint1, constraint2 ] = parsedConstraint.constraint;
       // intentionally copied as the environment in simple case should be interdependent...
@@ -164,6 +170,10 @@ function fill(
 
 
     case ConstraintTypes.Simple:
+      if ( isAlias( parsedConstraint.constraint, environment ) ) {
+        return fill( source, environment.alias[ parsedConstraint.constraint.substr(1) ], environment );
+      }
+
       // Instead of skipping, save all results with loss upper bounded
       for ( let i = 1; currentResult.loss > 0 && i < source.length; i++ ) {
         let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );

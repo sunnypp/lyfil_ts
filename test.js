@@ -376,3 +376,54 @@ t.test( 'OR taken before AND', { autoend: true },
 
   }
 );
+
+t.test( 'Complex Or and And with Alias', { autoend: true },
+  t => {
+
+    t.same( fill('123', ':alias', {
+      dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] },
+        c: { '3': [{ loss: 0, result: [ '7' ] }] }
+      },
+      alias: {
+        alias: 'a,b|c'
+      }
+    })[1], {
+      loss: 1,
+      result: [ '9', '8', '' ]
+    }, "alias => (a,b) | c, returning a+b due to less loss" );
+
+    t.same( fill('123', ':a1', {
+      dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] },
+        c: { '3': [{ loss: 0, result: [ '7' ] }] }
+      },
+      alias: {
+        a1: ':a2|b,c',
+        a2: 'a'
+      }
+    })[1], {
+      loss: 1,
+      result: [ '', '8', '7' ]
+    }, "Nested alias a | ( b,c ), returning b+c due to less loss" );
+
+    t.same( fill('123', ':A', {
+      dictionary: {
+        a: { '1': [{ loss: 0, result: [ '9' ] }] },
+        b: { '2': [{ loss: 0, result: [ '8' ] }] },
+        c: { '3': [{ loss: 0, result: [ '7' ] }] }
+      },
+      alias: {
+        A: ':a1|:a2',
+        a1: 'b,c',
+        a2: 'a,:a1'
+      }
+    })[1], {
+      loss: 0,
+      result: [ '9', '8', '7' ]
+    }, "( b,c ) | ( a,b,c ), returning a+b+c due to less loss" );
+
+  }
+);

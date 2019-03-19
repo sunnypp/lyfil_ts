@@ -52,6 +52,9 @@ function parse(constraint, environment) {
         constraint: constraint
     };
 }
+function isAlias(constraint, environment) {
+    return constraint[0] === ":" && idx(['alias', constraint.substr(1)], environment);
+}
 function fill(source, constraint, environment) {
     if (isFoundInResultCache(source, constraint, environment)) {
         let cachedResults = environment.resultCache[constraint][source];
@@ -95,6 +98,9 @@ function fill(source, constraint, environment) {
             deep_set(['resultCache', constraint, source], environment, [currentResult]);
             return [environment, currentResult];
         case ConstraintTypes.Simple:
+            if (isAlias(parsedConstraint.constraint, environment)) {
+                return fill(source, environment.alias[parsedConstraint.constraint.substr(1)], environment);
+            }
             // Instead of skipping, save all results with loss upper bounded
             for (let i = 1; currentResult.loss > 0 && i < source.length; i++) {
                 let [_1, head] = fill(source.substr(0, i), constraint, environment);
