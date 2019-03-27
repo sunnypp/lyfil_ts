@@ -1,5 +1,6 @@
 const t = require('tap');
-const fill = require('./built/fill.js');
+const fill = require('./built/fill.js').default;
+const LOOPABLE = Symbol.for('LOOPABLE');
 
 t.test( 'Basic settings', { autoend: true }, t => {
   t.same( fill( 'xx', 'a', { resultCache: { a: {} } } )[1].loss, 2, 'Loss = length when failed (2 chars)' );
@@ -12,32 +13,44 @@ t.test( 'Basic settings', { autoend: true }, t => {
   } )[1], { loss: 1, result: [ '2' ] }, 'Use the pick() in environment' );
 });
 
-t.test( 'Dictionary with Simple Constraint', { autoend: true },
+t.only( 'Dictionary with Simple Constraint', { autoend: true },
   t => {
-    // found directly
-    t.same( fill( '1', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9' ] }, "Found directly char" );
-    t.same( fill( '12', 'a', { dictionary: { a: { '12': [{ loss: 0, result: ['98'] }] } } } )[1], { loss: 0, result: ['98'] }, "Found directly vocab" );
+    t.runOnly = true;
 
-    // not found completely
-    t.same( fill( '2', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1].loss, 1, "Not found char" );
-    t.same( fill( '23', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1].loss, 2, "Not found vocab" );
+    t.test( 'found directly', { autoend: true }, t => {
+      t.same( fill( '1', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9' ] }, "Found directly char" );
+      t.same( fill( '12', 'a', { dictionary: { a: { '12': [{ loss: 0, result: ['98'] }] } } } )[1], { loss: 0, result: ['98'] }, "Found directly vocab" );
+    });
+
+    t.test( 'not found completely', { autoend: true }, t => {
+      t.same( fill( '2', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1].loss, 1, "Not found char" );
+      t.same( fill( '23', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1].loss, 2, "Not found vocab" );
+    });
 
     // found partially loopable
-    t.same( fill( '11', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9', '9' ] }, "pattern: oo" );
+    t.test( 'Found loopable',
+      t => {
+        t.same( fill( '11', 'a', { dictionary: { a: { [Symbol.for('LOOPABLE')]: true, '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9', '9' ] }, "pattern: oo");
+        t.end();
+      }
+    )
     t.same( fill( '21', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 1, result: [ '', '9' ] }, "pattern: xo" );
-    t.same( fill( '121', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 1, result: [ '9', '', '9' ] }, "pattern: oxo" );
-    t.same( fill( '1213', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 2, result: [ '9', '', '9', '' ] }, "pattern: oxox" );
+    t.same( fill( '121', 'a', { dictionary: { a: { [Symbol.for('LOOPABLE')]: true, '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 1, result: [ '9', '', '9' ] }, "pattern: oxo" );
+    t.same( fill( '1213', 'a', { dictionary: { a: { [Symbol.for('LOOPABLE')]: true, '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 2, result: [ '9', '', '9', '' ] }, "pattern: oxox" );
     t.same( fill( '1213', 'a', { dictionary: { a: {
+       [Symbol.for('LOOPABLE')]: true,
       '1': [{ loss: 0, result: [ '9' ] }],
       '2': [{ loss: 0, result: [ '8' ] }]
     } } } )[1], { loss: 1, result: [ '9', '8', '9', '' ] }, "pattern: ooox" );
     t.same( fill( '1213', 'a', { dictionary: { a: {
+       [Symbol.for('LOOPABLE')]: true,
       '1': [{ loss: 0, result: [ '9' ] }],
       '21': [{ loss: 0, result: [ '89' ] }]
     } } } )[1], { loss: 1, result: [ '9', '89', '' ] }, "pattern: o[oo]x" );
 
     // optimize
     t.same( fill( '1213', 'a', { dictionary: { a: {
+       [Symbol.for('LOOPABLE')]: true,
       '1': [{ loss: 0, result: [ '9' ] }],
       '12': [{ loss: 0, result: [ '98' ] }]
     } } } )[1], { loss: 1, result: [ '98', '9', '' ] }, "pattern: [oo]ox" );
@@ -53,6 +66,7 @@ t.test( 'Dictionary with Simple Constraint', { autoend: true },
     } } } )[1], { loss: 1, result: [ '98', '' ] }, "pattern: [oo]x" );
 
     t.same( fill( '12321', 'a', { dictionary: { a: {
+       [Symbol.for('LOOPABLE')]: true,
       '1': [{ loss: 0, result: [ '9' ] }],
       '12': [{ loss: 0, result: [ '98' ] }],
       '23': [{ loss: 0, result: [ '87' ] }],
@@ -60,6 +74,7 @@ t.test( 'Dictionary with Simple Constraint', { autoend: true },
     } } } )[1], { loss: 0, result: [ '98', '789' ] }, "pattern: [oo][ooo]" );
 
     t.same( fill( '12321', 'a', { dictionary: { a: {
+       [Symbol.for('LOOPABLE')]: true,
       '1': [{ loss: 0, result: [ '9' ] }],
       '12': [{ loss: 0, result: [ '98' ] }],
       '23': [{ loss: 0, result: [ '87' ] }],
@@ -68,6 +83,7 @@ t.test( 'Dictionary with Simple Constraint', { autoend: true },
 
     t.same( fill('12321', 'a', {
       dictionary: { a: {
+       [Symbol.for('LOOPABLE')]: true,
         '1': [{ loss: 0, result: [ '9' ] }],
         '12': [{ loss: 0, result: [ '98' ] }],
         '23': [{ loss: 2, result: [ '87' ] }],

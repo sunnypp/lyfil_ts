@@ -1,3 +1,7 @@
+const LOOPABLE = Symbol.for('LOOPABLE');
+const EMPTY_MARKER = '';
+import idx from './utils';
+
 type ResultCache = {};
 type Dictionary = {};
 type SourceString = string;
@@ -46,8 +50,6 @@ interface WeightedResult {
   result: Result;
 }
 
-// https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
-const idx: ( successors: string[], object: {} ) => any = (p, o) => p.reduce((xs, x) => (xs && xs[x]) ? xs[x] : null, o);
 const deep_set: ( successors: string[], object: {}, value: any ) => void = (p, o, v) => {
   for ( let i = 0; i < p.length - 1; i++ ) {
     o[p[i]] = o[p[i]] ? o[p[i]] : {};
@@ -57,13 +59,15 @@ const deep_set: ( successors: string[], object: {}, value: any ) => void = (p, o
 };
 
 function isFoundInDictionary( source: string, constraint: string, environment: Environment ): Boolean {
-  // conceptually environment.resultCache[constraint][source];
   return idx( [ 'dictionary', constraint, source ], environment ) ? true : false;
 }
 
 function isFoundInResultCache( source: string, constraint: string, environment: Environment ): Boolean {
-  // conceptually environment.resultCache[constraint][source];
   return idx( [ 'resultCache', constraint, source ], environment ) ? true : false;
+}
+
+function isLoopable( constraint: string, environment: Environment ): Boolean {
+  return idx( [ 'dictionary', constraint, LOOPABLE ], environment ) ? true : false;
 }
 
 function evaluateWith( environment: Environment ): ( CachedResult ) => WeightedResult {
@@ -106,6 +110,10 @@ function isAlias( constraint: ConstraintString, environment: Environment ): Bool
   return constraint[0] === ":" && idx( ['alias', constraint.substr(1)], environment );
 }
 
+function lossArray( length: number ): string[] {
+  return Array(length).fill(EMPTY_MARKER);
+}
+
 function fill(
   source: SourceString,
   constraint: ConstraintString,
@@ -126,7 +134,7 @@ function fill(
 
   let currentResult: WeightedResult = {
     loss: source.length,
-    result: Array(source.length).fill('')
+    result: lossArray(source.length)
   };
 
   switch( parsedConstraint.type ) {
@@ -174,23 +182,49 @@ function fill(
         return fill( source, environment.alias[ parsedConstraint.constraint.substr(1) ], environment );
       }
 
-      // Instead of skipping, save all results with loss upper bounded
-      for ( let i = 1; currentResult.loss > 0 && i < source.length; i++ ) {
-        let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );
-        // should use _1 instead of environment in case of non loopable?
-        let [ _2, tail ] = fill( source.substr( i ), constraint, environment );
+      if ( isLoopable( constraint, environment ) ) {
+        // Instead of skipping, should save all results with loss upper bounded
+        for ( let i = 1; currentResult.loss > 0 && i < source.length; i++ ) {
+          let [ _1, head ] = fill( source.substr( 0, i ), constraint, environment );
+          // should use _1 instead of environment in case of non loopable?
+          let [ _2, tail ] = fill( source.substr( i ), constraint, environment );
 
-        let tempResult: WeightedResult = (
-          environment.accumulate || ( ( h, t ) => ({
-            loss: h.loss + t.loss,
-            result: h.result.concat(t.result)
-          } ) )
-        )( head, tail );
+          let tempResult: WeightedResult = (
+            environment.accumulate || ( ( h, t ) => ({
+              loss: h.loss + t.loss,
+              result: h.result.concat(t.result)
+            } ) )
+          )( head, tail );
 
-        if ( currentResult.loss > tempResult.loss ) {
-          currentResult = tempResult;
+          if ( currentResult.loss > tempResult.loss ) {
+            currentResult = tempResult;
+          }
         }
       }
+      else {
+        main: for ( let vocabLength = source.length; vocabLength > 0; vocabLength-- ) {
+          for (
+            let startIndex = 0;
+            startIndex + vocabLength <= source.length;
+            startIndex++
+          ) {
+            let toneSequence = source.substr(startIndex, vocabLength);
+            if ( isFoundInDictionary( toneSequence, constraint, environment ) ) {
+              currentResult = {
+                loss: source.length - toneSequence.length,
+                result: [
+                  ...lossArray(startIndex),
+                  // losing other options here, consider Result to be string instead of string[]
+                  ( environment.pick || optimized )( environment.dictionary[constraint][toneSequence] ).result[0],
+                  ...lossArray( source.length - toneSequence.length - startIndex )
+                ]
+              };
+              break main;
+            }
+          }
+        }
+      }
+
 
       deep_set( [ 'resultCache', constraint, source ], environment, [ currentResult ] );
 
@@ -198,4 +232,4 @@ function fill(
   }
 }
 
-module.exports = fill;
+export default fill;

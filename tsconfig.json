@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "module": "CommonJS",
     "outDir": "./built",
     "allowJs": true,
     "target": "es6"

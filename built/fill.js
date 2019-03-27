@@ -1,11 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const LOOPABLE = Symbol.for('LOOPABLE');
+const EMPTY_MARKER = '';
+const utils_1 = require("./utils");
 var ConstraintTypes;
 (function (ConstraintTypes) {
     ConstraintTypes[ConstraintTypes["Simple"] = 0] = "Simple";
     ConstraintTypes[ConstraintTypes["Or"] = 1] = "Or";
     ConstraintTypes[ConstraintTypes["And"] = 2] = "And";
 })(ConstraintTypes || (ConstraintTypes = {}));
-// https://medium.com/javascript-inside/safely-accessing-deeply-nested-values-in-javascript-99bf72a0855a
-const idx = (p, o) => p.reduce((xs, x) => (xs && xs[x]) ? xs[x] : null, o);
 const deep_set = (p, o, v) => {
     for (let i = 0; i < p.length - 1; i++) {
         o[p[i]] = o[p[i]] ? o[p[i]] : {};
@@ -14,12 +17,13 @@ const deep_set = (p, o, v) => {
     o[p[p.length - 1]] = v;
 };
 function isFoundInDictionary(source, constraint, environment) {
-    // conceptually environment.resultCache[constraint][source];
-    return idx(['dictionary', constraint, source], environment) ? true : false;
+    return utils_1.default(['dictionary', constraint, source], environment) ? true : false;
 }
 function isFoundInResultCache(source, constraint, environment) {
-    // conceptually environment.resultCache[constraint][source];
-    return idx(['resultCache', constraint, source], environment) ? true : false;
+    return utils_1.default(['resultCache', constraint, source], environment) ? true : false;
+}
+function isLoopable(constraint, environment) {
+    return utils_1.default(['dictionary', constraint, LOOPABLE], environment) ? true : false;
 }
 function evaluateWith(environment) {
     return result => {
@@ -53,7 +57,10 @@ function parse(constraint, environment) {
     };
 }
 function isAlias(constraint, environment) {
-    return constraint[0] === ":" && idx(['alias', constraint.substr(1)], environment);
+    return constraint[0] === ":" && utils_1.default(['alias', constraint.substr(1)], environment);
+}
+function lossArray(length) {
+    return Array(length).fill(EMPTY_MARKER);
 }
 function fill(source, constraint, environment) {
     if (isFoundInResultCache(source, constraint, environment)) {
@@ -68,7 +75,7 @@ function fill(source, constraint, environment) {
     const parsedConstraint = parse(constraint, environment);
     let currentResult = {
         loss: source.length,
-        result: Array(source.length).fill('')
+        result: lossArray(source.length)
     };
     switch (parsedConstraint.type) {
         case ConstraintTypes.Or:
@@ -101,21 +108,42 @@ function fill(source, constraint, environment) {
             if (isAlias(parsedConstraint.constraint, environment)) {
                 return fill(source, environment.alias[parsedConstraint.constraint.substr(1)], environment);
             }
-            // Instead of skipping, save all results with loss upper bounded
-            for (let i = 1; currentResult.loss > 0 && i < source.length; i++) {
-                let [_1, head] = fill(source.substr(0, i), constraint, environment);
-                // should use _1 instead of environment in case of non loopable?
-                let [_2, tail] = fill(source.substr(i), constraint, environment);
-                let tempResult = (environment.accumulate || ((h, t) => ({
-                    loss: h.loss + t.loss,
-                    result: h.result.concat(t.result)
-                })))(head, tail);
-                if (currentResult.loss > tempResult.loss) {
-                    currentResult = tempResult;
+            if (isLoopable(constraint, environment)) {
+                // Instead of skipping, should save all results with loss upper bounded
+                for (let i = 1; currentResult.loss > 0 && i < source.length; i++) {
+                    let [_1, head] = fill(source.substr(0, i), constraint, environment);
+                    // should use _1 instead of environment in case of non loopable?
+                    let [_2, tail] = fill(source.substr(i), constraint, environment);
+                    let tempResult = (environment.accumulate || ((h, t) => ({
+                        loss: h.loss + t.loss,
+                        result: h.result.concat(t.result)
+                    })))(head, tail);
+                    if (currentResult.loss > tempResult.loss) {
+                        currentResult = tempResult;
+                    }
+                }
+            }
+            else {
+                main: for (let vocabLength = source.length; vocabLength > 0; vocabLength--) {
+                    for (let startIndex = 0; startIndex + vocabLength <= source.length; startIndex++) {
+                        let toneSequence = source.substr(startIndex, vocabLength);
+                        if (isFoundInDictionary(toneSequence, constraint, environment)) {
+                            currentResult = {
+                                loss: source.length - toneSequence.length,
+                                result: [
+                                    ...lossArray(startIndex),
+                                    // losing other options here, consider Result to be string instead of string[]
+                                    (environment.pick || optimized)(environment.dictionary[constraint][toneSequence]).result[0],
+                                    ...lossArray(source.length - toneSequence.length - startIndex)
+                                ]
+                            };
+                            break main;
+                        }
+                    }
                 }
             }
             deep_set(['resultCache', constraint, source], environment, [currentResult]);
             return [environment, currentResult];
     }
 }
-module.exports = fill;
+exports.default = fill;
