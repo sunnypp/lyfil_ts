@@ -13,10 +13,8 @@ t.test( 'Basic settings', { autoend: true }, t => {
   } )[1], { loss: 1, result: [ '2' ] }, 'Use the pick() in environment' );
 });
 
-t.only( 'Dictionary with Simple Constraint', { autoend: true },
+t.test( 'Dictionary with Simple Constraint', { autoend: true },
   t => {
-    t.runOnly = true;
-
     t.test( 'found directly', { autoend: true }, t => {
       t.same( fill( '1', 'a', { dictionary: { a: { '1': [{ loss: 0, result: [ '9' ] }] } } } )[1], { loss: 0, result: [ '9' ] }, "Found directly char" );
       t.same( fill( '12', 'a', { dictionary: { a: { '12': [{ loss: 0, result: ['98'] }] } } } )[1], { loss: 0, result: ['98'] }, "Found directly vocab" );
@@ -145,8 +143,14 @@ t.test( 'OR Constraint', { autoend: true },
       } } )[1].loss, 2, "Not found vocab" );
 
       t.same( fill( '11', 'a|b', { dictionary: {
-        a: { '1': [{ loss: 0, result: [ '9' ] }] },
-        b: { '1': [{ loss: 0, result: [ '7' ] }] }
+        a: {
+          [Symbol.for('LOOPABLE')]: true,
+          '1': [{ loss: 0, result: [ '9' ] }]
+        },
+        b: {
+          [Symbol.for('LOOPABLE')]: true,
+          '1': [{ loss: 0, result: [ '7' ] }]
+        }
       } } )[1], {
         loss: 0,
         result: [ '9', '9' ]
@@ -174,26 +178,39 @@ t.test( 'OR Constraint', { autoend: true },
 
       t.same( fill( '121', 'b|a', { dictionary: {
         a: { '21': [{ loss: 0, result: [ '89' ] }] },
-        b: { '1': [{ loss: 0, result: [ '9' ] }] }
+        b: {
+          [Symbol.for('LOOPABLE')]: true,
+          '1': [{ loss: 0, result: [ '9' ] }]
+        }
       } } )[1], {
         loss: 1,
         result: [ '9', '', '9' ]
       }, "202 by 1st case" );
 
+      t.same( fill( '121', 'b|a', { dictionary: {
+        a: { '21': [{ loss: 0, result: [ '89' ] }] },
+        b: { '1': [{ loss: 0, result: [ '9' ] }] }
+      } } )[1], {
+        loss: 1,
+        result: [ '', '89' ]
+      }, "Optimized to use less loss without loopable" );
+
       t.same( fill( '1213', 'a|b', { dictionary: {
         a: { '23': [{ loss: 0, result: [ '87' ] }] },
         b: { '1': [{ loss: 0, result: [ '9' ] }] }
       } } )[1], {
-        loss: 2,
-        result: [ '9', '', '9', '' ]
-      }, "First case no use, partial apply 2nd" );
+        loss: 3,
+        result: [ '9', '', '', '' ]
+      }, "First case no use, apply 2nd once due to non-loopable" );
 
       t.same( fill( '1213', 'a|b', { dictionary: {
         a: {
+          [Symbol.for('LOOPABLE')]: true,
           '3': [{ loss: 0, result: [ '7' ] }],
           '21': [{ loss: 0, result: [ '89' ] }]
         },
         b: {
+          [Symbol.for('LOOPABLE')]: true,
           '1': [{ loss: 0, result: [ '9' ] }],
           '2': [{ loss: 0, result: [ '8' ] }]
         }
@@ -204,10 +221,12 @@ t.test( 'OR Constraint', { autoend: true },
 
       t.same( fill( '1213', 'b|a', { dictionary: {
         a: {
+          [Symbol.for('LOOPABLE')]: true,
           '3': [{ loss: 0, result: [ '7' ] }],
           '21': [{ loss: 0, result: [ '89' ] }]
         },
         b: {
+          [Symbol.for('LOOPABLE')]: true,
           '1': [{ loss: 0, result: [ '9' ] }],
           '2': [{ loss: 0, result: [ '8' ] }]
         }
@@ -218,6 +237,7 @@ t.test( 'OR Constraint', { autoend: true },
 
       t.same( fill( '1213', 'a|b', { dictionary: {
         a: {
+          [Symbol.for('LOOPABLE')]: true,
           '1': [{ loss: 0, result: [ '9' ] }],
           '21': [{ loss: 0, result: [ '89' ] }]
         },
@@ -233,6 +253,7 @@ t.test( 'OR Constraint', { autoend: true },
 
   }
 );
+
 t.test( 'AND Constraint', { autoend: true },
   t => {
 
@@ -299,6 +320,7 @@ t.test( 'AND Constraint', { autoend: true },
     t.test( 'Complex cases', { autoend: true }, t => {
       t.same( fill( '1213', 'a,b', { dictionary: {
         a: {
+          [Symbol.for('LOOPABLE')]: true,
           '1': [{ loss: 0, result: [ '9' ] }],
           '12': [{ loss: 0, result: [ '98' ] }]
         },
@@ -345,6 +367,7 @@ t.test( 'AND Constraint', { autoend: true },
 
       t.same( fill( '12321', 'a,b', { dictionary: {
         a: {
+          [Symbol.for('LOOPABLE')]: true,
           '1': [{ loss: 0, result: [ '9' ] }],
           '12': [{ loss: 0, result: [ '98' ] }],
           '23': [{ loss: 0, result: [ '87' ] }],
