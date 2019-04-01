@@ -27,13 +27,17 @@ Which is parsed into a string in the form `___/_______,_____,_____,_____,_____/_
 ### Constraints
 
 ```
+Can use - for AND, | for OR phrases.
+
 No prefix <- Dictionary with pure vocabs
-: <- phrases, that decomposes into phrases or no prefix
-  - which can use - for AND, | for OR phrases.
-/ <- Phrase splitter
-^ <- Sentence splitter (, looks strange at the beginning of a line)
+: <- dictionary alias, that decomposes into aliases or no prefix
+, <- Phrase splitter
+^ <- Sentence splitter
 $ <- Verses splitter
 # <- Song
+
+Not needed at the moment:
+/ <- Tempo splitter (there should be a break between vocabs, but this doesn't break the phrase (like between 如果 & 可以))
 ```
 
 Say, a song can be filled by the **Story** : "Start THEN Development THEN Twist THEN End".
