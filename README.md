@@ -31,12 +31,12 @@ Can use - for AND, | for OR phrases.
 
 No prefix <- Dictionary with pure vocabs
 : <- dictionary alias, that decomposes into aliases or no prefix
-, <- Phrase splitter
 ^ <- Sentence splitter
 $ <- Verses splitter
 # <- Song
 
 Not needed at the moment:
+, <- Phrase splitter
 / <- Tempo splitter (there should be a break between vocabs, but this doesn't break the phrase (like between 如果 & 可以))
 ```
 
@@ -52,7 +52,7 @@ Let's dig deeper with `$Start`.  Assume it is `Name THEN Background`, which only
 
 Thus `$Start = ^Name-$Background`, which `$Background = ^Background|^Background-$Background`.
 
-Then for sentence `^Background`, it consists of several phrases (to be separated by commas).  Let's just call them `,phrases`, which are in the form of `:subject-:verb-:object` which connects directly to dictionary `subject`.
+Then for sentence `^Background`, it consists of several phrases (to be separated by commas).  Let's just call them `^phrases` (as if we are treating an incomplete sentence as sentence itself), which are in the form of `:subject-:verb-:object` which connects directly to dictionary `subject`, etc..
 
 
 
