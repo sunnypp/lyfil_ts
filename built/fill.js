@@ -2,6 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const LOOPABLE = Symbol.for('LOOPABLE');
 const EMPTY_MARKER = '';
+const CONSTRAINT_SYMBOL = {
+    OR: '|',
+    AND: '-',
+};
 const utils_1 = require("./utils");
 var ConstraintTypes;
 (function (ConstraintTypes) {
@@ -37,14 +41,14 @@ function optimized(results) {
     return results.reduce((p, c) => (c.loss < p.loss ? c : p), results[0]);
 }
 function parse(constraint, environment) {
-    const orIndex = constraint.indexOf('|');
+    const orIndex = constraint.indexOf(CONSTRAINT_SYMBOL.OR);
     if (orIndex !== -1) {
         return {
             type: ConstraintTypes.Or,
             constraint: [constraint.substr(0, orIndex), constraint.substr(orIndex + 1)]
         };
     }
-    const andIndex = constraint.indexOf(',');
+    const andIndex = constraint.indexOf(CONSTRAINT_SYMBOL.AND);
     if (andIndex !== -1) {
         return {
             type: ConstraintTypes.And,

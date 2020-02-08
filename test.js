@@ -1,6 +1,12 @@
 const t = require('tap');
 const fill = require('./built/fill.js').default;
 const LOOPABLE = Symbol.for('LOOPABLE');
+const CONSTRAINT_SYMBOL = {
+  OR: '|',
+  AND: '-',
+}
+const and = (...s) => (s.join(CONSTRAINT_SYMBOL.AND));
+const or = (...s) => (s.join(CONSTRAINT_SYMBOL.OR));
 
 t.test( 'Basic settings', { autoend: true }, t => {
   t.same( fill( 'xx', 'a', { resultCache: { a: {} } } )[1].loss, 2, 'Loss = length when failed (2 chars)' );
@@ -258,17 +264,17 @@ t.test( 'AND Constraint', { autoend: true },
   t => {
 
     t.test( 'Complete cases (match or fail all)', { autoend: true }, t => {
-      t.same( fill( '1', 'a,b', { dictionary: {
+      t.same( fill( '1', and('a', 'b'), { dictionary: {
         a: { '1': [{ loss: 0, result: [ '9' ] }] },
         b: { '2': [{ loss: 0, result: [ '8' ] }] }
       } } )[1].loss, 1, "Return max loss if 1 char splits into 2" );
 
-      t.same( fill( '12', 'a,b', { dictionary: {
+      t.same( fill( '12', and('a', 'b'), { dictionary: {
         a: { '1': [{ loss: 0, result: [ '9' ] }] },
         b: { '2': [{ loss: 0, result: [ '8' ] }] }
       } } )[1].result, [ '9', '8' ], "Successful And" );
 
-      t.same( fill( '12', 'a,b', { dictionary: {
+      t.same( fill( '12', and('a', 'b'), { dictionary: {
         a: { '2': [{ loss: 0, result: [ '8' ] }] },
         b: { '1': [{ loss: 0, result: [ '9' ] }] },
       } } )[1].loss, 2, "Fail all due to forced missing a or b" );
@@ -276,7 +282,7 @@ t.test( 'AND Constraint', { autoend: true },
     });
 
     t.test( 'Partial cases', { autoend: true }, t => {
-      t.same( fill( '12', 'a,b', { dictionary: {
+      t.same( fill( '12', and('a', 'b'), { dictionary: {
         a: { '2': [{ loss: 0, result: [ '9' ] }] },
         b: { '2': [{ loss: 0, result: [ '8' ] }] }
       } } )[1], {
@@ -284,7 +290,7 @@ t.test( 'AND Constraint', { autoend: true },
         result: [ '', '8' ]
       }, "x2" );
 
-      t.same( fill( '12', 'a,b', { dictionary: {
+      t.same( fill( '12', and('a', 'b'), { dictionary: {
         a: { '1': [{ loss: 0, result: [ '9' ] }] },
         b: { '4': [{ loss: 0, result: [ '8' ] }] }
       } } )[1], {
@@ -292,7 +298,7 @@ t.test( 'AND Constraint', { autoend: true },
         result: [ '9', '' ]
       }, "1x" );
 
-      t.same( fill( '123', 'a,b,c', { dictionary: {
+      t.same( fill( '123', and('a', 'b', 'c'), { dictionary: {
         a: { '1': [{ loss: 0, result: [ '9' ] }] },
         b: { '4': [{ loss: 0, result: [ '8' ] }] },
         c: { '3': [{ loss: 0, result: [ '7' ] }] }
@@ -301,13 +307,13 @@ t.test( 'AND Constraint', { autoend: true },
         result: [ '9', '', '7' ]
       }, "1x3" );
 
-      t.same( fill( '123', 'a,b', { dictionary: {
+      t.same( fill( '123', and('a', 'b'), { dictionary: {
         a: { '2': [{ loss: 0, result: [ '8' ] }] },
         b: { '1': [{ loss: 0, result: [ '9' ] }] },
       } } )[1].loss, 2, "x1x" );
 
       // missing a part of a complete sentence isn't good, so 900 instead of 987
-      t.same( fill( '123', 'a,b,c', { dictionary: {
+      t.same( fill( '123', and('a', 'b', 'c'), { dictionary: {
         a: { '1': [{ loss: 0, result: [ '9' ] }] },
         b: { '4': [{ loss: 0, result: [ '8' ] }] },
         c: { '23': [{ loss: 0, result: [ '87' ] }] }
@@ -318,7 +324,7 @@ t.test( 'AND Constraint', { autoend: true },
     });
 
     t.test( 'Complex cases', { autoend: true }, t => {
-      t.same( fill( '1213', 'a,b', { dictionary: {
+      t.same( fill( '1213', and('a', 'b'), { dictionary: {
         a: {
           [Symbol.for('LOOPABLE')]: true,
           '1': [{ loss: 0, result: [ '9' ] }],
@@ -330,7 +336,7 @@ t.test( 'AND Constraint', { autoend: true },
         result: [ '98', '9', '7' ]
       }, "1112" );
 
-      t.same( fill( '1213', 'a,b', { dictionary: {
+      t.same( fill( '1213', and('a', 'b'), { dictionary: {
         a: {
           '1': [{ loss: 0, result: [ '9' ] }],
           '12': [{ loss: 0, result: [ '98' ] }]
@@ -341,7 +347,7 @@ t.test( 'AND Constraint', { autoend: true },
         result: [ '98', '97' ]
       }, "1122" );
 
-      t.same( fill( '1213', 'a,b', { dictionary: {
+      t.same( fill( '1213', and('a', 'b'), { dictionary: {
         a: {
           '1': [{ loss: 0, result: [ '9' ] }],
           '12': [{ loss: 0, result: [ '98' ] }]
@@ -352,7 +358,7 @@ t.test( 'AND Constraint', { autoend: true },
         result: [ '9', '897' ]
       }, "1222" );
 
-      t.same( fill( '12321', 'a,b', { dictionary: {
+      t.same( fill( '12321', and('a', 'b'), { dictionary: {
         a: {
           '1': [{ loss: 0, result: [ '9' ] }],
           '12': [{ loss: 0, result: [ '98' ] }],
@@ -365,7 +371,7 @@ t.test( 'AND Constraint', { autoend: true },
         result: [ '98', 'ggg' ]
       }, "11222, not skipping 2nd" );
 
-      t.same( fill( '12321', 'a,b', { dictionary: {
+      t.same( fill( '12321', and('a', 'b'), { dictionary: {
         a: {
           [Symbol.for('LOOPABLE')]: true,
           '1': [{ loss: 0, result: [ '9' ] }],
@@ -386,7 +392,7 @@ t.test( 'AND Constraint', { autoend: true },
 t.test( 'OR taken before AND', { autoend: true },
   t => {
 
-    t.same( fill( '123', 'a,b|c', { dictionary: {
+    t.same( fill( '123', or(and('a', 'b'), 'c'), { dictionary: {
       a: { '1': [{ loss: 0, result: [ '9' ] }] },
       b: { '2': [{ loss: 0, result: [ '8' ] }] },
       c: { '3': [{ loss: 0, result: [ '7' ] }] }
@@ -395,7 +401,7 @@ t.test( 'OR taken before AND', { autoend: true },
       result: [ '9', '8', '' ]
     }, "(a,b) | c, returning a+b due to less loss" );
 
-    t.same( fill( '123', 'a|b,c', { dictionary: {
+    t.same( fill( '123', or('a', and('b', 'c')), { dictionary: {
       a: { '1': [{ loss: 0, result: [ '9' ] }] },
       b: { '2': [{ loss: 0, result: [ '8' ] }] },
       c: { '3': [{ loss: 0, result: [ '7' ] }] }
@@ -404,7 +410,7 @@ t.test( 'OR taken before AND', { autoend: true },
       result: [ '', '8', '7' ]
     }, "a | ( b,c ), returning b+c due to less loss" );
 
-    t.same( fill( '123', 'b,c|a,b,c', { dictionary: {
+    t.same( fill( '123', or(and('b','c'), and('a', 'b', 'c')), { dictionary: {
       a: { '1': [{ loss: 0, result: [ '9' ] }] },
       b: { '2': [{ loss: 0, result: [ '8' ] }] },
       c: { '3': [{ loss: 0, result: [ '7' ] }] }
@@ -426,7 +432,7 @@ t.test( 'Complex Or and And with Alias', { autoend: true },
         c: { '3': [{ loss: 0, result: [ '7' ] }] }
       },
       alias: {
-        alias: 'a,b|c'
+        alias: or(and('a', 'b'), 'c')
       }
     })[1], {
       loss: 1,
@@ -440,7 +446,7 @@ t.test( 'Complex Or and And with Alias', { autoend: true },
         c: { '3': [{ loss: 0, result: [ '7' ] }] }
       },
       alias: {
-        a1: ':a2|b,c',
+        a1: or(':a2', and('b', 'c')),
         a2: 'a'
       }
     })[1], {
@@ -456,8 +462,8 @@ t.test( 'Complex Or and And with Alias', { autoend: true },
       },
       alias: {
         A: ':a1|:a2',
-        a1: 'b,c',
-        a2: 'a,:a1'
+        a1: and('b', 'c'),
+        a2: and('a', ':a1')
       }
     })[1], {
       loss: 0,
