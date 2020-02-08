@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LyFil</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+    <script src="fill.js"></script>
+    <script src="util.js"></script>
+    <script
+        src="https://code.jquery.com/jquery-3.3.1.min.js"
+  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+  crossorigin="anonymous"></script>
+<style>
+body {
+  background: linear-gradient(115.73698555454143deg, rgba(248, 198, 215,1) 4.927083333333334%,rgba(175, 233, 249,1) 97.84374999999999%);
+  min-height: 100vh;
+}
+input, textarea {
+  background: rgba(255,255,255,.7) !important;
+}
+button {
+  background: rgba(255,255,255,.5) !important;
+}
+</style>
+  </head>
+  <body>
+  <section class="section">
+    <div class="container">
+      <div class="level">
+        <div class="level-left">
+          <div class="level-item"><h1 class="title">LyFil</h1></div>
+          <div class="level-item"><button class="button" id="food">Food</button></div>
+          <div class="level-item"><button class="button" id="good">Good</button></div>
+          <div class="level-item"><button class="button" id="god">Love</button></div>
+        </div>
+        <div class="level-right">
+          <div class="level-item">Default Filling Sequence</div>
+          <div class="level-item"><input class="input" id="dfs"/></div>
+        </div>
+      </div>
+      <div class="columns">
+        <div class="column">
+          Dictionary
+          <textarea id="dictionary" class="textarea" placeholder="Dictionary" rows="10"></textarea>
+        </div>
+        <div class="column">
+          Alias
+          <textarea id="alias" class="textarea" placeholder="Alias" rows="10"></textarea>
+        </div>
+      </div>
+      <div class="columns">
+        <div class="column">
+          <div class="level">
+            <div class="level-left"><div class="level-item">Original Lyrics</div></div>
+            <div class="level-right"><div class="level-item"><button id="process" class="button">Process</button></div></div>
+          </div>
+          <textarea id="ol" class="textarea" placeholder="Original Lyrics" rows="20"></textarea>
+        </div>
+        <div class="column">
+          <div class="level">
+            <div class="level-left"><div class="level-item">Tones of Lyrics</div></div>
+            <div class="level-right"><div class="level-item"><button id="fill" class="button">Fill</button></div></div>
+          </div>
+          <div class="columns">
+            <div class="column">
+              <textarea id="tl" class="textarea" placeholder="Tones of Lyrics" rows="20"></textarea>
+            </div>
+            <div class="column">
+              <textarea id="fs" class="textarea" placeholder="Fill sequence" rows="20"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="level">
+            <div class="level-left"><div class="level-item">Filled Lyrics</div></div>
+            <div class="level-right"><div class="level-item"><button id="refill" class="button">Refill</button></div></div>
+          </div>
+          <textarea id="fl" class="textarea" placeholder="Filled Lyrics" rows="20"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script>
+
+    $("#food").click( () => {
+      $("#dfs").val('food');
+      $("#dictionary").val(
+`{
+  "food": [ "tomato", "egg", "milk", "veggies", "and" ]
+}`
+      );
+      $("#alias").val(``);
+    } );
+
+    $("#good").click( () => {
+      $("#dfs").val('adj');
+      $("#dictionary").val(
+`{
+  "adj": [ "good", "nice", "excellent", "marvellous", "wonderful", "quick", "convenient", "awesome", "and" ]
+}`
+      );
+      $("#alias").val(``);
+    } );
+
+    $("#god").click( () => {
+      $("#dfs").val('add,:clause|:clause');
+      $("#dictionary").val(
+`{
+  "god"  : [ "God", "The Lord", "The Father", "My Shephard", "Almighty God" ],
+  "is"   : [ "is", "truly is", "is always" ],
+  "adj"  : [ "good", "faithful", "patient", "kind", "loving", "forgiving" ],
+  "more" : [ "very", "really", "always", "truly" ],
+  "add"  : [ "and", "moreover", "also", "by the way" ]
+}`
+      );
+      $("#alias").val(
+`{
+  "clause": "god,is,:adjc|:adjc,god|god",
+  "adjc": "adj|more,adj"
+}`
+      );
+    } );
+
+$("#ol").val(
+`When I am down, and oh my soul so weary
+When troubles come, and my heart burdened be
+Then I am still, and wait here in the silence
+Until you come and sit awhile with me
+You raise me up, so I can stand on mountains
+You raise me up, to walk on stormy seas
+I am strong, when I am on your shoulders
+You raise me up, to more than I can be`
+);
+
+$("#process").click( () => {
+  $("#tl").val(
+    $("#ol").val().split("\n").map(
+      sentence => sentence.split(',').map(
+        clause =>
+        clause.split(' ').map(
+          word => toneOf(word)
+        ).join(' '),
+      ).join(',')
+    ).join("\n")
+  );
+  $("#fs").val(
+    $("#ol").val().split("\n").map(
+      sentence => ( $("#dfs").val() )
+    ).join("\n")
+  );
+} );
+
+$("#fill, #refill").click( () => {
+  let dictionaryEntries = JSON.parse( $("#dictionary").val() );
+  let environment = {
+    dictionary: Object.entries(dictionaryEntries).reduce(
+      ( p, [k, v] ) => ( { ...p, [k]: dictionaryFactory(v) } ), {}
+    ),
+    alias: $("#alias").val().trim() ? JSON.parse( $("#alias").val() ) : {},
+    pick: rs => rs[Math.floor(Math.random()*rs.length)]
+  };
+  let sequences = $("#fs").val().split("\n");
+  $("#fl").val(
+    $("#tl").val().split("\n").map(
+      sentence => sentence.split(',').map(
+        ( clause, ind ) => fill(
+          clause.split(' ').join(''),
+          sequences[ind],
+          environment
+        )[1].result.join(' ')
+      ).join(',')
+    ).join("\n")
+  );
+  console.log(environment);
+} );
+  </script>
+
+  </body>
+</html>
