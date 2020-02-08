@@ -1,16 +1,118 @@
-import './types';
-import {
-  idx,
-  deep_set,
-  isFoundInDictionary,
-  isFoundInResultCache,
-  isLoopable,
-  evaluateWith,
-  optimized,
-  parse,
-  isAlias,
-  lossArray
-} from './utils';
+const LOOPABLE = Symbol.for('LOOPABLE');
+const EMPTY_MARKER = '';
+import idx from './utils';
+
+type ResultCache = {};
+type Dictionary = {};
+type SourceString = string;
+type ConstraintString = string;
+type Category = string;
+
+enum ConstraintTypes {
+  Simple, Or, And
+}
+
+interface Simple {
+  type: ConstraintTypes.Simple;
+  constraint: Category;
+}
+
+interface Or {
+  type: ConstraintTypes.Or;
+  constraint: ConstraintString[];
+}
+
+interface And {
+  type: ConstraintTypes.And;
+  constraint: ConstraintString[];
+}
+
+type Constraint = Simple | Or | And;
+
+/* dictionary: { [ConstraintString]: { [SourceString]: WeightedResult[] } } */
+interface Environment {
+  dictionary: Dictionary;
+  resultCache?: ResultCache;
+  pick?( results: WeightedResult[] ): WeightedResult;
+  accumulate?( result1: WeightedResult, result2: WeightedResult ): WeightedResult;
+  alias?: {};
+}
+
+type Result = string[];
+
+interface CachedResult {
+  loss: number | ( (Environment) => number );
+  result: Result;
+}
+
+interface WeightedResult {
+  loss: number;
+  result: Result;
+}
+
+const deep_set: ( successors: string[], object: {}, value: any ) => void = (p, o, v) => {
+  for ( let i = 0; i < p.length - 1; i++ ) {
+    o[p[i]] = o[p[i]] ? o[p[i]] : {};
+    o = o[p[i]];
+  }
+  o[p[p.length - 1]] = v;
+};
+
+function isFoundInDictionary( source: string, constraint: string, environment: Environment ): Boolean {
+  return idx( [ 'dictionary', constraint, source ], environment ) ? true : false;
+}
+
+function isFoundInResultCache( source: string, constraint: string, environment: Environment ): Boolean {
+  return idx( [ 'resultCache', constraint, source ], environment ) ? true : false;
+}
+
+function isLoopable( constraint: string, environment: Environment ): Boolean {
+  return idx( [ 'dictionary', constraint, LOOPABLE ], environment ) ? true : false;
+}
+
+function evaluateWith( environment: Environment ): ( CachedResult ) => WeightedResult {
+  return result => {
+    return ( typeof result.loss === 'number' ? result : {
+      loss: result.loss(environment),
+      result: result.result
+    })
+  };
+}
+
+function optimized( results: WeightedResult[] ): WeightedResult {
+  return results.reduce( (p, c) => ( c.loss < p.loss ? c : p ), results[0] );
+}
+
+function parse( constraint: ConstraintString, environment: Environment ): Constraint {
+  const orIndex = constraint.indexOf('|');
+  if ( orIndex !== -1 ) {
+    return {
+      type: ConstraintTypes.Or,
+      constraint: [ constraint.substr(0, orIndex), constraint.substr( orIndex+1 ) ]
+    };
+  }
+
+  const andIndex = constraint.indexOf(',');
+  if ( andIndex !== -1 ) {
+    return {
+      type: ConstraintTypes.And,
+      constraint: [ constraint.substr(0, andIndex), constraint.substr( andIndex+1 ) ]
+    }
+  }
+
+  return {
+    type: ConstraintTypes.Simple,
+    constraint: constraint
+  };
+}
+
+function isAlias( constraint: ConstraintString, environment: Environment ): Boolean {
+  return constraint[0] === ":" && idx( ['alias', constraint.substr(1)], environment );
+}
+
+function lossArray( length: number ): string[] {
+  return Array(length).fill(EMPTY_MARKER);
+}
 
 function fill(
   source: SourceString,
@@ -130,4 +232,4 @@ function fill(
   }
 }
 
-export default ziggu;
+export default fill;
